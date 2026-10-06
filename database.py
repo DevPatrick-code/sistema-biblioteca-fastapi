@@ -1,4 +1,4 @@
-import sqlite3
+from sqlalchemy import create_engine
+from configs import DATABASE_URL, POOL_SIZE
 
-def conectar():
-    return sqlite3.connect("biblioteca.db")
+engine = create_engine(DATABASE_URL, pool_size=POOL_SIZE)

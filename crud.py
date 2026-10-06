@@ -1,144 +1,75 @@
-from models import Livro
-from database import conectar
-
+from schemas import Livro
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from database import engine
+from models import Livro as LivroModel
 
 def adicionar_livro(livro: Livro):
-    """Adicionar"""
-    conn = conectar()
-    cursor = conn.cursor()
+    db = Session(engine)
 
-    cursor.execute(
-        "SELECT id FROM livros WHERE id = ?",
-        (livro.id,)
+    new_livro = LivroModel(
+        titulo = livro.titulo,
+        autor = livro.autor,
+        disponivel = livro.disponivel,
+        ano = livro.ano
     )
 
-    if cursor.fetchone() is not None:
-        conn.close()
-        return None
+    db.add(new_livro)
+    db.commit()
+    db.refresh(new_livro)
+    db.close()
 
-    cursor.execute(
-        """
-        INSERT INTO livros (id, titulo, autor, disponivel, ano)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            livro.id,
-            livro.titulo,
-            livro.autor,
-            livro.disponivel,
-            livro.ano
-        )
-    )
-
-    conn.commit()
-    conn.close()
-
-    return livro
+    return new_livro
 
 
 def excluir_livro(id):
-    """Excluir"""
-    conn = conectar()
-    cursor = conn.cursor()
+    db = Session(engine)
+    stmt = select(LivroModel).where(LivroModel.id == id)
+    livro = db.execute(stmt).scalar_one_or_none()
 
-    cursor.execute(
-        "DELETE FROM livros WHERE id = ?",
-        (id,)
-    )
-
-    conn.commit()
-
-    if cursor.rowcount == 0:
-        conn.close()
+    if livro == None:
         return None
 
-    conn.close()
+    db.delete(livro)
+    db.commit()
+    db.close()
+    
     return True
 
 
 def buscar_livro(id):
-    """Buscar"""
-    conn = conectar()
-    cursor = conn.cursor()
+    db = Session(engine)
+    stmt = select(LivroModel).where(LivroModel.id == id)
+    livro = db.execute(stmt).scalar_one_or_none()
+    db.close()
 
-    cursor.execute(
-        """
-        SELECT id, titulo, autor, disponivel, ano
-        FROM livros
-        WHERE id = ?
-        """,
-        (id,)
-    )
-
-    resultado = cursor.fetchone()
-    conn.close()
-
-    if resultado is None:
-        return None
-
-    return {
-        "id": resultado[0],
-        "titulo": resultado[1],
-        "autor": resultado[2],
-        "disponivel": bool(resultado[3]),
-        "ano": resultado[4]
-    }
+    return livro
 
 
 def listar_livros():
-    """Listar"""
-    conn = conectar()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        SELECT id, titulo, autor, disponivel, ano
-        FROM livros
-        """
-    )
-
-    resultados = cursor.fetchall()
-    conn.close()
-
-    livros = []
-
-    for resultado in resultados:
-        livros.append({
-            "id": resultado[0],
-            "titulo": resultado[1],
-            "autor": resultado[2],
-            "disponivel": bool(resultado[3]),
-            "ano": resultado[4]
-        })
+    db = Session(engine)
+    stmt = select(LivroModel)
+    livros = db.execute(stmt).scalars().all()
+    db.close()
 
     return livros
 
 
 def atualizar_livro(id, livro_atualizado: Livro):
-    """Atualizar"""
-    conn = conectar()
-    cursor = conn.cursor()
+    db = Session(engine)
+    stmt = select(LivroModel).where(LivroModel.id == id)
+    livro = db.execute(stmt).scalar_one_or_none()
 
-    cursor.execute(
-        """
-        UPDATE livros
-        SET titulo = ?, autor = ?, disponivel = ?, ano = ?
-        WHERE id = ?
-        """,
-        (
-            livro_atualizado.titulo,
-            livro_atualizado.autor,
-            livro_atualizado.disponivel,
-            livro_atualizado.ano,
-            id
-        )
-    )
-
-    conn.commit()
-
-    if cursor.rowcount == 0:
-        conn.close()
+    if livro == None:
         return None
 
-    conn.close()
-    return livro_atualizado
+    livro.titulo = livro_atualizado.titulo
+    livro.autor = livro_atualizado.autor
+    livro.ano = livro_atualizado.ano
+    livro.disponivel = livro_atualizado.disponivel
+
+    db.commit()
+    db.refresh(livro)
+    db.close()
+
+    return livro

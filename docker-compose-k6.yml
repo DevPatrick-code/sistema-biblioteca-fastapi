@@ -1,0 +1,18 @@
+services:
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    user: "root"
+    volumes:
+      - ./performance:/performance
+    networks:
+      - mynetwork
+    env_file:
+      - .env.dev
+    environment:
+      - K6_WEB_DASHBOARD_EXPORT=/performance/${TEST_TYPE}.html
+    command: run /performance/${TEST_TYPE}.js
+
+networks:
+  mynetwork:
+    driver: bridge

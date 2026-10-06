@@ -12,3 +12,5 @@ biblioteca.db
 .vscode/
 .postman/
 postman/
+
+performance/*.html
